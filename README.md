@@ -22,21 +22,14 @@ Built for the "save it now, read it later" workflow: copy a link, run `readit`, 
 go install github.com/luccamendonca/readit-to-markdown@latest
 ```
 
-Binary lands at `$(go env GOPATH)/bin/readit-to-markdown`. Symlink or alias it to `readit` if you want the shorter name:
+Binary lands at `$(go env GOPATH)/bin/readit-to-markdown`. Make sure that's on your `PATH`.
 
-```sh
-ln -s "$(go env GOPATH)/bin/readit-to-markdown" "$(go env GOPATH)/bin/readit"
-# or
-alias readit=readit-to-markdown
-```
-
-To build from source with the short name directly:
+To build from source:
 
 ```sh
 git clone https://github.com/luccamendonca/readit-to-markdown
 cd readit-to-markdown
-go build -o readit .
-mv readit "$(go env GOPATH)/bin/"
+go install .
 ```
 
 ## Configure
@@ -58,20 +51,22 @@ The directory is created if missing.
 
 ## Usage
 
+The command is `readit-to-markdown` (or alias it to `readit` in your shell rc — examples below use the short form for brevity):
+
 ```sh
-readit                                  # reads URL from clipboard
-readit https://example.com/article      # positional URL
-readit --url https://example.com/x      # explicit flag
-readit --dir ~/Notes/inbox              # override output dir
-readit --quiet                          # no desktop notification
-READIT_NOTIFY=0 readit                  # same, via env
+readit-to-markdown                              # reads URL from clipboard
+readit-to-markdown https://example.com/article  # positional URL
+readit-to-markdown --url https://example.com/x  # explicit flag
+readit-to-markdown --dir ~/Notes/inbox          # override output dir
+readit-to-markdown --quiet                      # no desktop notification
+READIT_NOTIFY=0 readit-to-markdown              # same, via env
 ```
 
 URL is resolved in this priority: **`--url` flag** → **positional arg** → **clipboard**. The first non-empty source wins; lower-priority sources aren't consulted.
 
 Behavior on invalid input differs by source:
 
-- **Clipboard** with no URL → silent no-op, exit `0` (so a bare `readit` bound to a hotkey is harmless).
+- **Clipboard** with no URL → silent no-op, exit `0` (so a bare invocation bound to a hotkey is harmless).
 - **`--url` / positional** with a non-`http(s)` value → loud error, exit `1`, error notification.
 
 Prints the absolute path of the written file to stdout. Errors go to stderr and trigger an alert notification (unless `--quiet`).
