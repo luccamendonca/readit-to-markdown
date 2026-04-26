@@ -143,4 +143,6 @@ Disable with `--quiet` or `READIT_NOTIFY=0`.
 
 ## License
 
-Personal project, no license specified. Use at your own risk.
+[GPLv3](LICENSE) — GNU General Public License, version 3 (29 June 2007).
+
+You may use, modify, and redistribute this software under the terms of the GPLv3. Derivative works must also be GPLv3.
