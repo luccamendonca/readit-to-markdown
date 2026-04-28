@@ -79,6 +79,7 @@ title: "The article's title"
 summary: "First paragraph or meta description"
 date: 2026-02-09       # or null if not detected
 url: https://...
+read_time: 7           # estimated minutes at 200 wpm (0 for empty bodies)
 ---
 
 # The article's title
@@ -101,10 +102,11 @@ If the title can't be derived, slug falls back to the last segment of the URL pa
 
 | Field     | Source                                                       |
 |-----------|--------------------------------------------------------------|
-| `title`   | `<title>` / `og:title` / first H1 / URL slug                 |
-| `summary` | `<meta name="description">` / `og:description` (HTML only)   |
-| `date`    | `og:article:published_time` / JSON-LD; `null` if absent      |
-| `url`     | the URL from your clipboard                                  |
+| `title`     | `<title>` / `og:title` / first H1 / URL slug                                  |
+| `summary`   | `<meta name="description">` / `og:description` (HTML only)                    |
+| `date`      | `og:article:published_time` / JSON-LD; `null` if absent                       |
+| `url`       | the URL from your clipboard                                                   |
+| `read_time` | estimated reading time in minutes, `ceil(words / 200)`; `0` for empty bodies  |
 
 `authors`, `topics`, `type` are intentionally omitted — they aren't reliably extractable.
 

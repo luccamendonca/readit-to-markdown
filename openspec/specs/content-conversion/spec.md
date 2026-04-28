@@ -119,12 +119,12 @@ When dispatch is `other`, fetch fails, or no body can be extracted, `readit` SHA
 
 ### Requirement: Frontmatter shape is fixed and Obsidian-compatible
 
-Every output file SHALL begin with a YAML frontmatter block delimited by `---` lines, containing exactly the fields `title`, `summary`, `date`, `url`, in that order. Other fields (`authors`, `topics`, `type`, etc.) MUST NOT be emitted.
+Every output file SHALL begin with a YAML frontmatter block delimited by `---` lines, containing exactly the fields `title`, `summary`, `date`, `url`, `read_time`, in that order. Other fields (`authors`, `topics`, `type`, etc.) MUST NOT be emitted.
 
 #### Scenario: Field order and presence
 - **WHEN** any output file is written (success, partial, or stub)
 - **THEN** the first line SHALL be `---`
-- **AND** subsequent lines SHALL be `title: "<value>"`, `summary: "<value>"`, `date: <value-or-null>`, `url: <value>`
+- **AND** subsequent lines SHALL be `title: "<value>"`, `summary: "<value>"`, `date: <value-or-null>`, `url: <value>`, `read_time: <value>`
 - **AND** the closing `---` SHALL be followed by the body
 
 #### Scenario: Date is null when unknown
@@ -134,3 +134,21 @@ Every output file SHALL begin with a YAML frontmatter block delimited by `---` l
 #### Scenario: Strings are escaped for YAML safety
 - **WHEN** `title` or `summary` contains `"`, `\`, or a newline
 - **THEN** `\` SHALL be escaped to `\\`, `"` SHALL be escaped to `\"`, and newlines SHALL be replaced with a single space
+
+### Requirement: Read time is estimated from the body word count
+
+Every output file SHALL include a `read_time` field in the frontmatter representing the estimated reading time in whole minutes. The estimate SHALL be computed from the final file body (the same Markdown that follows the frontmatter) using a fixed 200 words-per-minute baseline.
+
+The word count SHALL be the number of whitespace-separated tokens in the body (`strings.Fields` semantics). The reading time SHALL be `ceil(words / 200)`, except that an empty or whitespace-only body SHALL yield `0`.
+
+#### Scenario: Read time rounds up to the nearest minute
+- **WHEN** the body contains 201 whitespace-separated words
+- **THEN** `read_time` SHALL be `2`
+
+#### Scenario: Empty body yields zero
+- **WHEN** the body is empty or contains only whitespace
+- **THEN** `read_time` SHALL be `0`
+
+#### Scenario: Read time is emitted as an integer
+- **WHEN** any output file is written
+- **THEN** the frontmatter SHALL contain a line of the form `read_time: <N>` where `<N>` is a non-negative integer (no quotes, no unit suffix)
