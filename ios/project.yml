@@ -1,0 +1,68 @@
+name: Readit
+options:
+  bundleIdPrefix: com.luccamendonca.readit
+  deploymentTarget:
+    iOS: "16.0"
+  createIntermediateGroups: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    DEVELOPMENT_TEAM: ""   # fill in via Xcode signing UI or override here
+    MARKETING_VERSION: "0.1.0"
+    CURRENT_PROJECT_VERSION: "1"
+
+packages:
+  ReaditCore:
+    path: Packages/ReaditCore
+
+targets:
+  Readit:
+    type: application
+    platform: iOS
+    sources:
+      - path: App
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleDisplayName: Readit
+        UILaunchScreen: {}
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.luccamendonca.readit
+        TARGETED_DEVICE_FAMILY: "1,2"
+    dependencies:
+      - package: ReaditCore
+      - target: ReaditShare
+    entitlements:
+      path: App/Readit.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.luccamendonca.readit
+
+  ReaditShare:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: ShareExtension
+    info:
+      path: ShareExtension/Info.plist
+      properties:
+        CFBundleDisplayName: Readit
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.share-services
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShareViewController
+          NSExtensionAttributes:
+            NSExtensionActivationRule:
+              NSExtensionActivationSupportsWebURLWithMaxCount: 1
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.luccamendonca.readit.share
+        TARGETED_DEVICE_FAMILY: "1,2"
+    dependencies:
+      - package: ReaditCore
+    entitlements:
+      path: ShareExtension/ReaditShare.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.com.luccamendonca.readit
