@@ -71,7 +71,8 @@ func main() {
 	fname := buildFilename(title, time.Now())
 	out := filepath.Join(outDir, fname)
 
-	content := buildFile(title, summary, date, u.String(), body)
+	readTime := readTimeMinutes(body)
+	content := buildFile(title, summary, date, u.String(), readTime, body)
 	if err := os.WriteFile(out, []byte(content), 0o644); err != nil {
 		fatal(notify, "write %s: %v", out, err)
 	}
@@ -298,7 +299,7 @@ func yamlEscape(s string) string {
 	return s
 }
 
-func buildFile(title, summary, date, urlStr, body string) string {
+func buildFile(title, summary, date, urlStr string, readTime int, body string) string {
 	var b strings.Builder
 	b.WriteString("---\n")
 	fmt.Fprintf(&b, "title: \"%s\"\n", yamlEscape(title))
@@ -313,12 +314,29 @@ func buildFile(title, summary, date, urlStr, body string) string {
 		b.WriteString("date: null\n")
 	}
 	fmt.Fprintf(&b, "url: %s\n", urlStr)
+	fmt.Fprintf(&b, "read_time: %d\n", readTime)
 	b.WriteString("---\n")
 	b.WriteString(body)
 	if !strings.HasSuffix(body, "\n") {
 		b.WriteString("\n")
 	}
 	return b.String()
+}
+
+// readTimeMinutes estimates reading time in minutes for the given body
+// using a 200 words-per-minute baseline (a common conservative average).
+// Returns 0 when body has no words, otherwise rounds up to the nearest minute.
+func readTimeMinutes(body string) int {
+	words := len(strings.Fields(body))
+	if words == 0 {
+		return 0
+	}
+	const wpm = 200
+	minutes := words / wpm
+	if words%wpm != 0 {
+		minutes++
+	}
+	return minutes
 }
 
 func fail(format string, args ...any) {
