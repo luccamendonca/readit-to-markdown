@@ -1,0 +1,22 @@
+{
+  "pins" : [
+    {
+      "identity" : "swift-readability",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/neolee/swift-readability.git",
+      "state" : {
+        "revision" : "2ff3dc57a4526fea494e0a82c1defcb06ce60810"
+      }
+    },
+    {
+      "identity" : "swiftsoup",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/scinfu/SwiftSoup.git",
+      "state" : {
+        "revision" : "6c7915e16f729857aec3e99068c361e58a00ed68",
+        "version" : "2.13.4"
+      }
+    }
+  ],
+  "version" : 2
+}
