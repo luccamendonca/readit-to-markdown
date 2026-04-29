@@ -12,5 +12,9 @@ xcuserdata/
 Packages/*/.build/
 .swiftpm/
 
+# xcodegen-generated plists (regenerate from project.yml)
+App/Info.plist
+ShareExtension/Info.plist
+
 # macOS
 .DS_Store

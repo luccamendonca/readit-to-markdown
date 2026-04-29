@@ -1,31 +1,60 @@
 import UIKit
+import SwiftUI
 import UniformTypeIdentifiers
 import ReaditCore
 
-/// Entry point for the system share sheet. Extracts a URL from the input
-/// items, runs the ReaditCore pipeline, writes the resulting Markdown into
-/// the user-picked vault folder, and dismisses.
+/// Entry point for the system share sheet. Embeds a SwiftUI status view,
+/// extracts a URL from the input items, runs the ReaditCore pipeline,
+/// writes the resulting Markdown into the user-picked vault folder, and
+/// dismisses (auto on success, user-driven on failure).
 final class ShareViewController: UIViewController {
     private let appGroupID = "group.com.luccamendonca.readit"
+    private let model = ShareStatusModel()
+    private var hasFinished = false
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        installStatusView()
+    }
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         Task { await run() }
     }
 
+    private func installStatusView() {
+        let host = UIHostingController(
+            rootView: ShareStatusView(
+                model: model,
+                onDismiss: { [weak self] in self?.complete() }
+            )
+        )
+        addChild(host)
+        host.view.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(host.view)
+        NSLayoutConstraint.activate([
+            host.view.topAnchor.constraint(equalTo: view.topAnchor),
+            host.view.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            host.view.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            host.view.trailingAnchor.constraint(equalTo: view.trailingAnchor)
+        ])
+        host.didMove(toParent: self)
+    }
+
     private func run() async {
         guard let url = await extractURL() else {
-            return finish(error: "No URL in shared item")
+            return setStatus(.failure(message: "No URL in shared item."))
         }
+
         let bookmark = VaultBookmark(appGroupID: appGroupID)
         let folder: URL?
         do {
             folder = try bookmark.resolve()
         } catch {
-            return finish(error: "Vault unavailable: \(error.localizedDescription)")
+            return setStatus(.failure(message: "Vault unavailable: \(error.localizedDescription)"))
         }
         guard let folder else {
-            return finish(error: "Open Readit and pick a vault folder first")
+            return setStatus(.failure(message: "Open Readit and pick a vault folder first."))
         }
 
         let article = await Pipeline.process(url: url)
@@ -39,9 +68,10 @@ final class ShareViewController: UIViewController {
         let target = folder.appendingPathComponent(filename)
         do {
             try content.data(using: .utf8)?.write(to: target, options: .atomic)
-            finish(success: filename)
+            setStatus(.success(filename: filename))
+            await autoDismiss()
         } catch {
-            finish(error: "Write failed: \(error.localizedDescription)")
+            setStatus(.failure(message: "Write failed: \(error.localizedDescription)"))
         }
     }
 
@@ -60,14 +90,20 @@ final class ShareViewController: UIViewController {
         return nil
     }
 
-    private func finish(success filename: String) {
-        // TODO: brief confirmation UI before dismissing.
-        extensionContext?.completeRequest(returningItems: nil)
+    private func setStatus(_ status: ShareStatus) {
+        Task { @MainActor in self.model.status = status }
     }
 
-    private func finish(error message: String) {
-        // TODO: error UI; for now log and dismiss.
-        NSLog("Readit share extension: %@", message)
-        extensionContext?.completeRequest(returningItems: nil)
+    private func autoDismiss() async {
+        try? await Task.sleep(nanoseconds: 1_400_000_000)
+        complete()
+    }
+
+    private func complete() {
+        guard !hasFinished else { return }
+        hasFinished = true
+        DispatchQueue.main.async { [weak self] in
+            self?.extensionContext?.completeRequest(returningItems: nil)
+        }
     }
 }
