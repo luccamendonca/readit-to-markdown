@@ -34,11 +34,6 @@ targets:
     dependencies:
       - package: ReaditCore
       - target: ReaditShare
-    entitlements:
-      path: App/Readit.entitlements
-      properties:
-        com.apple.security.application-groups:
-          - group.com.luccamendonca.readit
 
   ReaditShare:
     type: app-extension
@@ -61,8 +56,3 @@ targets:
         TARGETED_DEVICE_FAMILY: "1,2"
     dependencies:
       - package: ReaditCore
-    entitlements:
-      path: ShareExtension/ReaditShare.entitlements
-      properties:
-        com.apple.security.application-groups:
-          - group.com.luccamendonca.readit

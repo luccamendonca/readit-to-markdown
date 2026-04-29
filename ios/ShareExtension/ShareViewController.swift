@@ -6,10 +6,12 @@ import ReaditCore
 /// Entry point for the system share sheet. Embeds a SwiftUI status view,
 /// extracts a URL from the input items, runs the ReaditCore pipeline,
 /// writes the resulting Markdown into the user-picked vault folder, and
-/// dismisses (auto on success, user-driven on failure).
-final class ShareViewController: UIViewController {
-    private let appGroupID = "group.com.luccamendonca.readit"
+/// dismisses (auto on success, user-driven on failure). On first run,
+/// prompts the user for a vault folder via UIDocumentPickerViewController.
+final class ShareViewController: UIViewController, UIDocumentPickerDelegate {
+    private let bookmark = VaultBookmark()
     private let model = ShareStatusModel()
+    private var pendingURL: URL?
     private var hasFinished = false
 
     override func viewDidLoad() {
@@ -19,7 +21,7 @@ final class ShareViewController: UIViewController {
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        Task { await run() }
+        Task { await start() }
     }
 
     private func installStatusView() {
@@ -41,22 +43,28 @@ final class ShareViewController: UIViewController {
         host.didMove(toParent: self)
     }
 
-    private func run() async {
+    private func start() async {
         guard let url = await extractURL() else {
             return setStatus(.failure(message: "No URL in shared item."))
         }
+        pendingURL = url
 
-        let bookmark = VaultBookmark(appGroupID: appGroupID)
         let folder: URL?
         do {
             folder = try bookmark.resolve()
         } catch {
             return setStatus(.failure(message: "Vault unavailable: \(error.localizedDescription)"))
         }
-        guard let folder else {
-            return setStatus(.failure(message: "Open Readit and pick a vault folder first."))
-        }
 
+        if let folder {
+            await process(url: url, folder: folder)
+        } else {
+            await MainActor.run { presentFolderPicker() }
+        }
+    }
+
+    private func process(url: URL, folder: URL) async {
+        setStatus(.working)
         let article = await Pipeline.process(url: url)
         let readTime = ReadTime.minutes(body: article.body)
         let content = Frontmatter.build(article, readTime: readTime)
@@ -73,6 +81,34 @@ final class ShareViewController: UIViewController {
         } catch {
             setStatus(.failure(message: "Write failed: \(error.localizedDescription)"))
         }
+    }
+
+    @MainActor
+    private func presentFolderPicker() {
+        model.status = .pickingFolder
+        let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.folder])
+        picker.delegate = self
+        picker.allowsMultipleSelection = false
+        picker.modalPresentationStyle = .formSheet
+        present(picker, animated: true)
+    }
+
+    func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
+        guard let folder = urls.first, let pendingURL else {
+            return setStatus(.failure(message: "No folder picked."))
+        }
+        let scoped = folder.startAccessingSecurityScopedResource()
+        defer { if scoped { folder.stopAccessingSecurityScopedResource() } }
+        do {
+            try bookmark.save(folder)
+        } catch {
+            return setStatus(.failure(message: "Couldn't save vault: \(error.localizedDescription)"))
+        }
+        Task { await process(url: pendingURL, folder: folder) }
+    }
+
+    func documentPickerWasCancelled(_ controller: UIDocumentPickerViewController) {
+        setStatus(.failure(message: "Pick a vault folder to save articles."))
     }
 
     private func extractURL() async -> URL? {

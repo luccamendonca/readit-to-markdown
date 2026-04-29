@@ -2,6 +2,7 @@ import SwiftUI
 
 enum ShareStatus: Equatable {
     case working
+    case pickingFolder
     case success(filename: String)
     case failure(message: String)
 }
@@ -23,6 +24,17 @@ struct ShareStatusView: View {
                 Text("Saving…")
                     .font(.headline)
                     .foregroundStyle(.secondary)
+
+            case .pickingFolder:
+                Image(systemName: "folder.fill")
+                    .font(.system(size: 56))
+                    .foregroundStyle(.blue)
+                Text("Pick your vault")
+                    .font(.title2.weight(.semibold))
+                Text("Choose the folder where Readit should save articles.")
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
 
             case .success(let filename):
                 Image(systemName: "checkmark.circle.fill")

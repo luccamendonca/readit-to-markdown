@@ -1,19 +1,15 @@
 import Foundation
 
-/// Persists the user-picked vault folder as a security-scoped bookmark inside
-/// the shared App Group's UserDefaults so both the app and the share
-/// extension can resolve and write to it.
+/// Persists the user-picked vault folder as a security-scoped bookmark in
+/// the caller's UserDefaults. With no App Group available (free Apple ID
+/// tier), the share extension stores its own bookmark in its own container.
 public struct VaultBookmark {
-    public let appGroupID: String
+    public let defaults: UserDefaults
     public let key: String
 
-    public init(appGroupID: String, key: String = "vaultBookmark") {
-        self.appGroupID = appGroupID
+    public init(defaults: UserDefaults = .standard, key: String = "vaultBookmark") {
+        self.defaults = defaults
         self.key = key
-    }
-
-    private var defaults: UserDefaults? {
-        UserDefaults(suiteName: appGroupID)
     }
 
     public func save(_ url: URL) throws {
@@ -23,13 +19,13 @@ public struct VaultBookmark {
         let options: URL.BookmarkCreationOptions = [.minimalBookmark]
         #endif
         let data = try url.bookmarkData(options: options, includingResourceValuesForKeys: nil, relativeTo: nil)
-        defaults?.set(data, forKey: key)
+        defaults.set(data, forKey: key)
     }
 
     /// Returns the resolved folder URL. Caller is responsible for balancing
     /// `startAccessingSecurityScopedResource()` / `stop...` around any I/O.
     public func resolve() throws -> URL? {
-        guard let data = defaults?.data(forKey: key) else { return nil }
+        guard let data = defaults.data(forKey: key) else { return nil }
         var stale = false
         #if os(macOS)
         let options: URL.BookmarkResolutionOptions = [.withSecurityScope]
@@ -44,6 +40,6 @@ public struct VaultBookmark {
     }
 
     public func clear() {
-        defaults?.removeObject(forKey: key)
+        defaults.removeObject(forKey: key)
     }
 }
